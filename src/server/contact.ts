@@ -3,10 +3,14 @@ import { getRequestIP } from '@tanstack/react-start/server'
 
 import { type ContactResult, contactSchema } from '#/lib/contact-schema'
 
+// Le site n'a aucune base de données : le message est transmis à une API tierce
+// (service d'e-mail, CRM, outil de tickets…) configurée par CONTACT_API_URL.
+
 // Limite simple par IP (mémoire du processus) : 5 messages / 10 minutes.
 const hits = new Map<string, number[]>()
 const WINDOW_MS = 10 * 60 * 1000
 const MAX_HITS = 5
+const API_TIMEOUT_MS = 10_000
 
 function rateLimited(key: string) {
   const now = Date.now()
@@ -29,21 +33,34 @@ export const submitContact = createServerFn({ method: 'POST' })
     if (!parsed.success) return { ok: false, code: 'invalid' }
     const input = parsed.data
 
-    // Robot : on répond « ok » sans rien enregistrer.
-    if (input.website) return { ok: true }
-
     const ip = getRequestIP({ xForwardedFor: true }) ?? 'unknown'
     if (rateLimited(ip)) return { ok: false, code: 'rate_limited' }
 
-    try {
-      const { createHash } = await import('node:crypto')
-      const { db } = await import('#/db')
-      const { contactMessages } = await import('#/db/schema')
-      const { eq } = await import('drizzle-orm')
+    const { CONTACT_API_URL, CONTACT_API_KEY } = process.env
 
-      const [row] = await db
-        .insert(contactMessages)
-        .values({
+    if (!CONTACT_API_URL) {
+      // Développement : on trace le message pour pouvoir tester l'interface sans service tiers.
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[contact] CONTACT_API_URL absent, message non transmis :', {
+          ...input,
+          message: `${input.message.slice(0, 60)}…`,
+        })
+        return { ok: true }
+      }
+      console.error('[contact] CONTACT_API_URL n’est pas configuré : message perdu.')
+      return { ok: false, code: 'server' }
+    }
+
+    try {
+      const res = await fetch(CONTACT_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(CONTACT_API_KEY ? { Authorization: `Bearer ${CONTACT_API_KEY}` } : {}),
+        },
+        body: JSON.stringify({
+          source: 'consulat-benin.cg',
+          receivedAt: new Date().toISOString(),
           name: clean(input.name),
           email: input.email,
           phone: input.phone ? clean(input.phone) : null,
@@ -51,49 +68,16 @@ export const submitContact = createServerFn({ method: 'POST' })
           topic: input.topic,
           message: input.message,
           locale: input.locale,
-          ipHash: createHash('sha256').update(ip).digest('hex').slice(0, 24),
-        })
-        .returning({ id: contactMessages.id })
-
-      // Notification par e-mail : uniquement si le SMTP est configuré (voir .env.example).
-      const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, CONTACT_TO } = process.env
-      if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-        try {
-          const { contact } = await import('#/data/contact')
-          const { consulates } = await import('#/data/network')
-          const nodemailer = await import('nodemailer')
-          const to = CONTACT_TO || consulates.find((c) => c.key === input.consulate)?.emails?.[0] || contact.emails[0]
-          const transport = nodemailer.createTransport({
-            host: SMTP_HOST,
-            port: Number(SMTP_PORT ?? 587),
-            secure: Number(SMTP_PORT ?? 587) === 465,
-            auth: { user: SMTP_USER, pass: SMTP_PASS },
-          })
-          await transport.sendMail({
-            from: SMTP_FROM || SMTP_USER,
-            to,
-            replyTo: { name: clean(input.name), address: input.email },
-            subject: `[Site] ${input.topic} – ${clean(input.name)}`,
-            text: [
-              `Consulat : ${input.consulate}`,
-              `Sujet : ${input.topic}`,
-              `Nom : ${clean(input.name)}`,
-              `E-mail : ${input.email}`,
-              `Téléphone : ${input.phone || '—'}`,
-              `Langue : ${input.locale}`,
-              '',
-              input.message,
-            ].join('\n'),
-          })
-          await db.update(contactMessages).set({ emailedAt: new Date() }).where(eq(contactMessages.id, row.id))
-        } catch (err) {
-          // Le message est déjà en base : on ne fait pas échouer l'envoi pour un souci SMTP.
-          console.error('[contact] envoi e-mail impossible :', err instanceof Error ? err.message : err)
-        }
+        }),
+        signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      })
+      if (!res.ok) {
+        console.error('[contact] l’API a répondu', res.status)
+        return { ok: false, code: 'server' }
       }
       return { ok: true }
     } catch (err) {
-      console.error('[contact] enregistrement impossible :', err instanceof Error ? err.message : err)
+      console.error('[contact] appel à l’API impossible :', err instanceof Error ? err.message : err)
       return { ok: false, code: 'server' }
     }
   })

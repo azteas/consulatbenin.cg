@@ -1,14 +1,14 @@
 # Planning — Site du Consulat du Bénin au Congo
 
 Référence : https://www.ambassade-benin.ma
-Stack : TanStack Start + PostgreSQL (Drizzle) · FR/EN · paiement en ligne · rendez-vous
+Stack : TanStack Start (sans base de données, API tierces) · FR/EN · paiement en ligne · rendez-vous
 Durée : ~14 semaines
 
 ## Calendrier
 | Sem. | Phase | Livrables |
 |---|---|---|
 | 1 | Cadrage | Validation catalogue services/tarifs/pièces, contenus, charte (couleurs du drapeau, logo), choix du prestataire de paiement, maquettes clés |
-| 2 | Fondations | Projet TanStack Start, PostgreSQL + Drizzle, i18n FR/EN, design system, layout (header, footer, menu mobile) |
+| 2 | Fondations | Projet TanStack Start, intégration des API tierces, i18n FR/EN, design system, layout (header, footer, menu mobile) |
 | 3-4 | Site vitrine | Accueil, Consulat (mot, biographie, personnel), Juridiction, Réseau, Contact, Aller au Bénin, liens utiles, galerie |
 | 4-5 | Actualités | Liste, détail, communiqués défilants, PDF, recherche |
 | 5-8 | Services & demandes | Catalogue, formulaire dynamique, upload sécurisé, n° de dossier, e-mails de confirmation |
