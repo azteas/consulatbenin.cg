@@ -28,7 +28,7 @@ function ContactPage() {
         </Reveal>
       </section>
 
-      <section className="wrap grid gap-12 pb-24 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+      <section className="wrap grid gap-12 pb-24 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14 xl:grid-cols-[1.05fr_0.95fr] xl:gap-16">
         {/* Coordonnées */}
         <div className="border-t border-ink/25">
           <Reveal>
@@ -75,12 +75,12 @@ function ContactPage() {
           </Reveal>
 
           <Reveal delay={0.15}>
-            <div className="flex flex-wrap items-center gap-3 pt-8">
+            <div className="flex flex-wrap items-center gap-2.5 pt-8 xl:flex-nowrap">
               <a
                 href={directionsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-[0.9rem] font-semibold text-paper transition-colors duration-300 hover:bg-clay"
+                className="inline-flex items-center gap-2 rounded-full border border-forest bg-forest whitespace-nowrap px-5 py-3 text-[0.9rem] font-semibold text-paper transition-colors duration-300 hover:bg-clay"
               >
                 {m.contact_directions()} <ArrowUpRight className="size-4" />
               </a>
@@ -88,13 +88,13 @@ function ContactPage() {
                 href={mapOpenUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-ink/35 px-6 py-3 text-[0.9rem] font-semibold transition-colors duration-300 hover:bg-ink hover:text-paper"
+                className="inline-flex items-center gap-2 rounded-full border border-ink/35 whitespace-nowrap px-5 py-3 text-[0.9rem] font-semibold transition-colors duration-300 hover:bg-ink hover:text-paper"
               >
                 {m.contact_open_map()}
               </a>
               <Link
                 to="/reseau-consulaire"
-                className="inline-flex items-center gap-2 rounded-full border border-ink/35 px-6 py-3 text-[0.9rem] font-semibold transition-colors duration-300 hover:bg-ink hover:text-paper"
+                className="inline-flex items-center gap-2 rounded-full border border-ink/35 whitespace-nowrap px-5 py-3 text-[0.9rem] font-semibold transition-colors duration-300 hover:bg-ink hover:text-paper"
               >
                 {m.contact_all_consulates()} <ArrowRight className="size-4" />
               </Link>
